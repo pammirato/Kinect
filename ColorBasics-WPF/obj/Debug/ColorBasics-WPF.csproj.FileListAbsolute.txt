@@ -1,0 +1,15 @@
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\bin\AnyCPU\Debug\ColorBasics-WPF.exe.config
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\bin\AnyCPU\Debug\ColorBasics-WPF.exe
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\bin\AnyCPU\Debug\ColorBasics-WPF.pdb
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\bin\AnyCPU\Debug\Microsoft.Kinect.dll
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\bin\AnyCPU\Debug\Microsoft.Kinect.xml
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\obj\Debug\ColorBasics-WPF.csprojResolveAssemblyReference.cache
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\obj\Debug\MainWindow.baml
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\obj\Debug\MainWindow.g.cs
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\obj\Debug\App.g.cs
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\obj\Debug\ColorBasics-WPF_MarkupCompile.cache
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\obj\Debug\ColorBasics-WPF.g.resources
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\obj\Debug\Microsoft.Samples.Kinect.ColorBasics.Properties.Resources.resources
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\obj\Debug\ColorBasics-WPF.csproj.GenerateResource.Cache
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\obj\Debug\ColorBasics-WPF.exe
+C:\Users\Phil\Documents\KinectExamples\ColorBasics-WPF\obj\Debug\ColorBasics-WPF.pdb
