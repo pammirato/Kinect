@@ -8,7 +8,7 @@ colors = {};
 colorTimeStamps = {};
 
 
-savePath = strcat('C:/Users/ammirato/Documents/KinectData/' , 'SittingTest/');
+savePath = strcat('C:/Users/amm/Documents/KinectData/' , 'Test/');
 
 
 colorPath = savePath; %'C:\Users\Phil\Documents\KinectToMatLab\';

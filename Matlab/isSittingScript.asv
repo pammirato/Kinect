@@ -84,19 +84,14 @@ circleRadius = 10;
 %2 circles per sitting pose, one for each knee
 circles = zeros(length(sitting)*2,3);
 
-
-heightRatio = (colorFrameHeight/bodyFrameHeight);
-widthRatio = (colorFrameWidth/bodyFrameWidth);
 %show about where we thought sitting happenned
 for j=1:length(sitting)
              %frame number
     yIndex = sitting(j)*2;
-    
-    
-    y1 =( bodyFrameHeight - bodyMatrix(jointIndexMap('KneeRight'),yIndex) )*heightRatio;
-    x1 =( bodyFrameWidth -bodyMatrix(jointIndexMap('KneeRight'),yIndex-1) )* widthRatio;
-    y2 =( bodyFrameHeight - bodyMatrix(jointIndexMap('KneeLeft'),yIndex) )* heightRatio;
-    x2 =( bodyFrameWidth -bodyMatrix(jointIndexMap('KneeLeft'),yIndex) )* widthRatio;
+    y1 = bodyMatrix(jointIndexMap('KneeRight'),yIndex);
+    x1 = bodyMatrix(jointIndexMap('KneeRight'),yIndex-1);
+    y2 = bodyMatrix(jointIndexMap('KneeLeft'),yIndex);
+    x2 = bodyMatrix(jointIndexMap('KneeLeft'),yIndex);
     circles(2*j-1,:) = [x1 y1 circleRadius];
     circles(2*j,:) = [x2 y2 circleRadius];
 end
