@@ -123,7 +123,7 @@ namespace Microsoft.Samples.Kinect.ColorBasics
             // write the needed values for a standard Uint16 array
             System.Buffer.BlockCopy(Encoding.ASCII.GetBytes(name.ToCharArray(0, 8)), 0, nameField, 0, 8);
 
-            #endregion
+            #endregion  
 
             #region DataType
 

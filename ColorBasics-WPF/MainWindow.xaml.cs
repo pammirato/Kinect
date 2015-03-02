@@ -13,9 +13,12 @@ namespace Microsoft.Samples.Kinect.ColorBasics
     using System.Globalization;
     using System.IO;
     using System.Windows;
+    //using System.Windows.Forms;
+    using System.Windows.Input;
     using System.Windows.Media;
     using System.Windows.Media.Imaging;
     using Microsoft.Kinect;
+    using System.Runtime.Serialization.Formatters.Binary;
 
 
     /// <summary>
@@ -24,17 +27,19 @@ namespace Microsoft.Samples.Kinect.ColorBasics
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private const string TIMESTAMP = "timestamp";
-        private const string SAVE_PATH = "C:/Users/Phil/Documents/KinectData/" + "Test/";
+        private const string OBJECT = "Test";
+        private const string SAVE_PATH = "C:/Users/ammirato/Documents/KinectData/" + OBJECT + "/";
 
         private bool captureColor = true;
         private bool captureDepth = true;
-        private bool captureBody = true;
+        private bool captureBody = false;
 
-
+        private bool saveColorDataAtEnd = false;
+        private bool batchSaveColorData = false;
         private bool saveBodyDataAtEnd = true;
         private bool saveDepthDataAtEnd = true;
-        private bool saveColorDataAtEnd = false;
-
+        
+        
         private int colorFramesNotSaved = 0;
         private const int colorBatchSize = 2;
 
@@ -206,9 +211,10 @@ namespace Microsoft.Samples.Kinect.ColorBasics
 
         // holds all the depth data to write at the end
         private List<ushort[]> allDepthData;
+        private List<ColorSpacePoint[]> allColorSpacePoints;
 
         private List<long> depthTimeStamps;
-
+        private List<long> colorTimeStamps2;
 
         //private List<ColorFrame> allColorData;
 
@@ -228,8 +234,15 @@ namespace Microsoft.Samples.Kinect.ColorBasics
         /// </summary>
         public MainWindow()
         {
+            if (!this.batchSaveColorData)
+            {
+                this.saveBodyDataAtEnd = false;
+            }
 
 
+
+           // this.KeyDown += new KeyEventHandler(this.Form1_KeyPress);
+            System.IO.Directory.CreateDirectory(SAVE_PATH);
 
 
             this.stopWatch = new Stopwatch();
@@ -252,8 +265,10 @@ namespace Microsoft.Samples.Kinect.ColorBasics
                 // allocate space to put the pixels being received and converted
                 this.depthFrameData = new ushort[this.depthFrameDescription.Width * this.depthFrameDescription.Height];
                 this.allDepthData = new List<ushort[]>();
+                this.allColorSpacePoints = new List<ColorSpacePoint[]>();
 
                 this.depthTimeStamps = new List<long>();
+                this.colorTimeStamps2 = new List<long>();
             }//if captureDepth
 
             if (captureColor)
@@ -286,8 +301,9 @@ namespace Microsoft.Samples.Kinect.ColorBasics
             this.InitializeComponent();
 
 
+            this.KeyUp += new System.Windows.Input.KeyEventHandler(tb_KeyDown);
 
-
+            
 
 
             // get the coordinate mapper
@@ -414,6 +430,24 @@ namespace Microsoft.Samples.Kinect.ColorBasics
             }
         }
 
+
+
+
+        private void tb_KeyDown(object sender, KeyEventArgs e)
+        {
+
+            char x = (char)e.Key;
+
+            if (e.Key == Key.D)
+            {
+                CancelEventArgs args = new CancelEventArgs();
+                
+                //MainWindow_Closing(this, args);
+                this.Close();
+            }
+
+        }
+
         /// <summary>
         /// Execute shutdown tasks
         /// </summary>
@@ -421,6 +455,15 @@ namespace Microsoft.Samples.Kinect.ColorBasics
         /// <param name="e">event arguments</param>
         private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
+            closeProgram();
+        }
+
+
+
+
+        private void closeProgram()
+        {
+
             if (this.colorFrameReader != null)
             {
                 // ColorFrameReder is IDisposable
@@ -439,7 +482,7 @@ namespace Microsoft.Samples.Kinect.ColorBasics
             stopWatch.Reset();
 
             //write out the bidy info
-           // int i = bodyTrackers.GetLength();
+            // int i = bodyTrackers.GetLength();
 
             this.StatusText = "Saving Body";
 
@@ -461,9 +504,11 @@ namespace Microsoft.Samples.Kinect.ColorBasics
                         allData += kvp.Key + "  " + kvp.Value + System.Environment.NewLine;
                     }
 
-                    //write the data for that body to a file.
-                    System.IO.File.WriteAllText(@SAVE_PATH + "Body" + i.ToString() + ".txt", allData);
-
+                    if (allData != null)
+                    {
+                        //write the data for that body to a file.
+                        System.IO.File.WriteAllText(@SAVE_PATH + "Body" + i.ToString() + ".txt", allData);
+                    }
                 }//end for
             }
 
@@ -474,11 +519,31 @@ namespace Microsoft.Samples.Kinect.ColorBasics
             if (saveDepthDataAtEnd && captureDepth)
             {
                 counter = 0;
+
                 foreach (ushort[] data in allDepthData)
                 {
-                    
-                    filePath = SAVE_PATH + "Depth" + this.depthTimeStamps[counter].ToString("D12") + ".MAT";
+                    /*filePath = SAVE_PATH + OBJECT + this.depthTimeStamps[counter].ToString("D12") + ".bin";
+                    //FileStream is IDisposable
+                    using (FileStream fs = new FileStream(filePath, FileMode.Create))
+                    {
+                        BinaryFormatter formatter = new BinaryFormatter();
+                        try
+                        {                
+                              formatter.Serialize(fs, data);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Failed to serialize. Reason: " + e.Message);
+                            throw;
+                        }
+                        finally
+                        {
+                            fs.Close();
+                        }
+                    }*/
+                    filePath = SAVE_PATH + OBJECT + this.depthTimeStamps[counter].ToString("D12") + ".MAT";
                     this.matfw = new MATWriter("depthmat", filePath, data, depthFrameDescription.Height, depthFrameDescription.Width);
+
                     counter++;
                 }
             }
@@ -491,16 +556,16 @@ namespace Microsoft.Samples.Kinect.ColorBasics
                 foreach (BitmapEncoder be in this.colorEncodersList)
                 {
 
-                    
+
                     //x = ts.Milliseconds;
-                    string path = SAVE_PATH + "Color" + counter.ToString("D12") + ".png";// Path.Combine(myPhotos, "KinectScreenshot-Color-" + time + ".png");
+                    string path = SAVE_PATH + OBJECT + this.colorTimeStamps2[counter].ToString("D12") + ".png";// Path.Combine(myPhotos, "KinectScreenshot-Color-" + time + ".png");
                     counter = counter + 1;
-                    
+
                     //filePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "/KinectToMatLab" + "/Depth" + time.ToString() + ".MAT";
                     // write the new file to disk
                     try
                     {
-                         //FileStream is IDisposable
+                        //FileStream is IDisposable
                         using (FileStream fs = new FileStream(path, FileMode.Create))
                         {
                             be.Save(fs);
@@ -513,11 +578,12 @@ namespace Microsoft.Samples.Kinect.ColorBasics
                         this.StatusText = string.Format(Properties.Resources.FailedScreenshotStatusTextFormat, path);
                     }
                 }//for each bitmap in allColorData
-                
+
             }//if savecolorData
 
-                Console.Out.WriteLine("the end.");
-        }
+            Console.Out.WriteLine("the end.");
+
+        }//close program
 
         /// <summary>
         /// Handles the user clicking on the screenshot button
@@ -565,44 +631,68 @@ namespace Microsoft.Samples.Kinect.ColorBasics
         /// <param name="e">event arguments</param>
         private void Reader_ColorFrameArrived(object sender, ColorFrameArrivedEventArgs e)
         {
+           
+            
             // ColorFrame is IDisposable
             using (ColorFrame colorFrame = e.FrameReference.AcquireFrame())
             {
                 if (colorFrame != null)
                 {
 
-                    if (saveColorDataAtEnd)
-                    {
-                        //put it here to write out later
-                        //allColorData.Add(colorFrame);
-                        BitmapEncoder temp = new PngBitmapEncoder();
-                        temp.Frames.Add(BitmapFrame.Create(this.colorBitmap));
-                        this.colorEncodersList.Add(temp);
-                    }
-                    else
+                    
+                    if(true)//else
                     {
                         FrameDescription colorFrameDescription = colorFrame.FrameDescription;
+
+                        WriteableBitmap wbm = new WriteableBitmap(colorFrameDescription.Width, colorFrameDescription.Height, 96.0, 96.0, PixelFormats.Bgr32, null);
 
                         using (KinectBuffer colorBuffer = colorFrame.LockRawImageBuffer())
                         {
                             this.colorBitmap.Lock();
 
-                            // verify data and write the new color frame data to the display bitmap
-                            if ((colorFrameDescription.Width == this.colorBitmap.PixelWidth) && (colorFrameDescription.Height == this.colorBitmap.PixelHeight))
+                            if (!saveColorDataAtEnd)
                             {
-                                colorFrame.CopyConvertedFrameDataToIntPtr(
-                                    this.colorBitmap.BackBuffer,
-                                    (uint)(colorFrameDescription.Width * colorFrameDescription.Height * 4),
-                                    ColorImageFormat.Bgra);
+                                // verify data and write the new color frame data to the display bitmap
+                                if ((colorFrameDescription.Width == this.colorBitmap.PixelWidth) && (colorFrameDescription.Height == this.colorBitmap.PixelHeight))
+                                {
+                                    colorFrame.CopyConvertedFrameDataToIntPtr(
+                                        this.colorBitmap.BackBuffer,
+                                        (uint)(colorFrameDescription.Width * colorFrameDescription.Height * 4),
+                                        ColorImageFormat.Bgra);
 
-                                this.colorBitmap.AddDirtyRect(new Int32Rect(0, 0, this.colorBitmap.PixelWidth, this.colorBitmap.PixelHeight));
+                                    this.colorBitmap.AddDirtyRect(new Int32Rect(0, 0, this.colorBitmap.PixelWidth, this.colorBitmap.PixelHeight));
+
+                                }
+
+
+                                this.colorBitmap.Unlock();
+
                             }
+                            // -------------------------------------------------------
+
+                            if (saveColorDataAtEnd)
+                            {
 
 
-                            this.colorBitmap.Unlock();
-                        
+                                wbm.Lock();
+
+                                // verify data and write the new color frame data to the display bitmap
+                                if ((colorFrameDescription.Width ==wbm.PixelWidth) && (colorFrameDescription.Height == wbm.PixelHeight))
+                                {
+                                    
+
+                                    colorFrame.CopyConvertedFrameDataToIntPtr(
+                                        wbm.BackBuffer,
+                                        (uint)(colorFrameDescription.Width * colorFrameDescription.Height * 4),
+                                        ColorImageFormat.Bgra);
+
+                                    wbm.AddDirtyRect(new Int32Rect(0, 0, wbm.PixelWidth, wbm.PixelHeight));
+                                }
 
 
+                                wbm.Unlock();
+                               // this.colorBitmap = wbm;
+                            }
 
 
 
@@ -610,72 +700,92 @@ namespace Microsoft.Samples.Kinect.ColorBasics
 
 
                             //save the color file
-                            if (this.colorBitmap != null)
+                            if (this.colorBitmap != null || wbm != null)
                             {
 
-
-                                
-
-                                // create a png bitmap encoder which knows how to save a .png file
-                                //BitmapEncoder encoder = new PngBitmapEncoder();
-
-
-                                //encoder.Frames.
-                                // create frame from the writable bitmap and add to encoder
-                                //encoder.Frames.Add(BitmapFrame.Create(this.colorBitmap));
-
-                                //string time = System.DateTime.Now.ToString("hh'-'mm'-'ss", CultureInfo.CurrentUICulture.DateTimeFormat);
-
-                                //string myPhotos = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-                                
-                                //int x = colorFrame.RelativeTime.Milliseconds;
-                                //TimeSpan ts = stopWatch.Elapsed;
-                                //long x = stopWatch.ElapsedMilliseconds;
-                                //x = ts.Milliseconds;
-                                //string path = "C:\\Users\\Phil\\Documents\\KinectToMatLab\\Color" + x.ToString("D12") + ".png";// Path.Combine(myPhotos, "KinectScreenshot-Color-" + time + ".png");
-                                //counter = counter + 1;
-                                
-                                //int time = depthFrame.RelativeTime.Milliseconds;
-                                //filePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "/KinectToMatLab" + "/Depth" + time.ToString() + ".MAT";
-                                // write the new file to disk
-                                try
+                                if (saveColorDataAtEnd)
                                 {
-                                    // FileStream is IDisposable
-                                   //using (FileStream fs = new FileStream(path, FileMode.Create))
-                                    //{
-                                        //encoder.Save(fs);
-                                    //}
-
-
-
-
-                                    if (this.colorFramesNotSaved >= colorBatchSize)
-                                    {
-                                        for(int i =0; i<colorBatchSize;i++) // (BitmapEncoder be in this.colorEncoders)
-                                        {
-                                            string fpath = SAVE_PATH + "Color" + this.colorTimeStamps[i].ToString("D12") + ".png";// Path.Combine(myPhotos, "KinectScreenshot-Color-" + time + ".png");
-                                            counter = counter + 1;
-
-                                            // FileStream is IDisposable
-                                            using (FileStream fs = new FileStream(fpath, FileMode.Create))
-                                            {
-                                                this.colorEncoders[i].Save(fs);
-                                            }
-                                            colorFramesNotSaved--;//we just saved a frame
-                                        }//for each bitmap encoder  
-
-                                    }//if not saved 5 or more
-
-                                    this.colorEncoders[colorFramesNotSaved] = new PngBitmapEncoder();
-                                    this.colorEncoders[colorFramesNotSaved].Frames.Add(BitmapFrame.Create(this.colorBitmap));
-                                    this.colorTimeStamps[colorFramesNotSaved] = stopWatch.ElapsedMilliseconds;
-                                    colorFramesNotSaved++;
-
-                                   // this.StatusText = string.Format(Properties.Resources.SavedScreenshotStatusTextFormat, path);
+                                    //put it here to write out later
+                                    //allColorData.Add(colorFrame);
+                                    BitmapEncoder temp = new PngBitmapEncoder();
+                                    temp.Frames.Add(BitmapFrame.Create(wbm));
+                                    this.colorEncodersList.Add(temp);
+                                    this.colorTimeStamps2.Add(Convert.ToInt64(colorFrame.RelativeTime.TotalMilliseconds));
+                                    return;
                                 }
-                                catch (IOException)
+
+                                if (!saveColorDataAtEnd)
                                 {
-                                    //this.StatusText = string.Format(Properties.Resources.FailedScreenshotStatusTextFormat, path);
+                                    if (!batchSaveColorData)
+                                    {
+                                        // create a png bitmap encoder which knows how to save a .png file
+                                        BitmapEncoder encoder = new PngBitmapEncoder();
+
+
+                                        //encoder.Frames.
+                                        // create frame from the writable bitmap and add to encoder
+                                        encoder.Frames.Add(BitmapFrame.Create(this.colorBitmap));
+
+
+                                        string path = SAVE_PATH + OBJECT + Convert.ToInt64(colorFrame.RelativeTime.TotalMilliseconds).ToString("D12") + ".png";
+                                        //int time = depthFrame.RelativeTime.Milliseconds;
+                                        //filePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "/KinectToMatLab" + "/Depth" + time.ToString() + ".MAT";
+                                        // write the new file to disk
+                                        try
+                                        {
+                                            // FileStream is IDisposable
+                                            using (FileStream fs = new FileStream(path, FileMode.Create))
+                                            {
+                                                encoder.Save(fs);
+                                            }
+                                        }
+                                        catch (IOException)
+                                        {
+                                            //this.StatusText = string.Format(Properties.Resources.FailedScreenshotStatusTextFormat, path);
+                                        }
+
+                                        Predicate<ushort []> predicate = FindDepth;
+                                        DepthSpacePoint [] mappedPoints = new DepthSpacePoint[colorFrameDescription.Width*colorFrameDescription.Height];
+                                        this.kinectSensor.CoordinateMapper.MapColorFrameToDepthSpace(allDepthData.FindLast(predicate), mappedPoints);
+                                    }
+                                    else
+                                    {
+
+
+
+
+
+                                        if (this.colorFramesNotSaved >= colorBatchSize)
+                                        {
+                                            for (int i = 0; i < colorBatchSize; i++) // (BitmapEncoder be in this.colorEncoders)
+                                            {
+                                                string fpath = SAVE_PATH + OBJECT + this.colorTimeStamps[i].ToString("D12") + ".png";// Path.Combine(myPhotos, "KinectScreenshot-Color-" + time + ".png");
+                                                counter = counter + 1;
+
+                                                try
+                                                {
+                                                    // FileStream is IDisposable
+                                                    using (FileStream fs = new FileStream(fpath, FileMode.Create))
+                                                    {
+                                                        this.colorEncoders[i].Save(fs);
+                                                    }
+                                                }
+                                                catch (IOException)
+                                                {
+                                                    //this.StatusText = string.Format(Properties.Resources.FailedScreenshotStatusTextFormat, path);
+                                                }
+                                                colorFramesNotSaved--;//we just saved a frame
+                                            }//for each bitmap encoder  
+
+                                        }//if not saved 5 or more
+
+                                        this.colorEncoders[colorFramesNotSaved] = new PngBitmapEncoder();
+                                        this.colorEncoders[colorFramesNotSaved].Frames.Add(BitmapFrame.Create(this.colorBitmap.Clone()));
+                                        this.colorTimeStamps[colorFramesNotSaved] = Convert.ToInt64(colorFrame.RelativeTime.TotalMilliseconds);//stopWatch.ElapsedMilliseconds;
+                                        colorFramesNotSaved++;
+
+                                        // this.StatusText = string.Format(Properties.Resources.SavedScreenshotStatusTextFormat, path);
+                                    }
                                 }
                             }
 
@@ -685,6 +795,15 @@ namespace Microsoft.Samples.Kinect.ColorBasics
                 }//if colorframe
             }//using
         }//color frame arrived
+
+
+
+
+
+        private static bool FindDepth(ushort [] obj)
+        {
+            return true;
+        }
 
         /// <summary>
         /// Handles the event which the sensor becomes unavailable (E.g. paused, closed, unplugged).
@@ -717,33 +836,33 @@ namespace Microsoft.Samples.Kinect.ColorBasics
                         using (Microsoft.Kinect.KinectBuffer depthBuffer = depthFrame.LockImageBuffer())
                         {
 
-                            {
+                            
 
+                            {
+                                this.depthFrameData = new ushort[this.depthFrameDescription.Width * this.depthFrameDescription.Height]; ;
                                 //get the depth data
                                 depthFrame.CopyFrameDataToArray(depthFrameData);
 
 
                                 if (saveDepthDataAtEnd)
                                 {
-                                    int x = depthFrameData.Length;
-                                    ushort[] temp = new ushort[x];
-                                    /*for (int k = 0; k < x; k++)
-                                    {
-                                        temp[k] = depthFrameData[k];
-                                    }*/
-                                    depthFrameData.CopyTo(temp,0);
-                                    allDepthData.Add(temp);
-                                    this.depthTimeStamps.Add(stopWatch.ElapsedMilliseconds);
+                                    //map depth to color space
+                                    ColorSpacePoint[] colorSpacePoints = new ColorSpacePoint[depthFrameData.Length];
+                                    this.kinectSensor.CoordinateMapper.MapDepthFrameToColorSpace(depthFrameData, colorSpacePoints);
+
+                                    CameraSpacePoint[] cameraSpacePoints = new CameraSpacePoint[depthFrameData.Length];
+                                    this.kinectSensor.CoordinateMapper.MapDepthFrameToCameraSpace(depthFrameData, cameraSpacePoints);
+                                    allColorSpacePoints.Add(colorSpacePoints);
+
+
+                                    allDepthData.Add(depthFrameData);
+                                    this.depthTimeStamps.Add(Convert.ToInt64(depthFrame.RelativeTime.TotalMilliseconds));//stopWatch.ElapsedMilliseconds);
                                 }
                                 else//save now
                                 {
-                                    //this.frameCount++;
-                                    //this.timing[frameCount] = (ushort)depthFrame.RelativeTime.Milliseconds;
                                     int time = depthFrame.RelativeTime.Milliseconds;
-                                    //TimeSpan ts = stopWatch.Elapsed;
-                                    //time = ts.Milliseconds;
-                                    //filePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "/KinectToMatLab" + "/Depth" + time.ToString() + ".MAT";
-                                    filePath = SAVE_PATH + "Depth" + stopWatch.ElapsedMilliseconds.ToString("D12")  + ".MAT";
+                                   
+                                    filePath = SAVE_PATH + OBJECT + Convert.ToInt64(depthFrame.RelativeTime.TotalMilliseconds).ToString("D12")  + ".MAT";
                                     counter = counter + 1;
                                     this.matfw = new MATWriter("depthmat", filePath, depthFrameData, depthFrame.FrameDescription.Height, depthFrame.FrameDescription.Width);
                                     
