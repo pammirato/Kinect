@@ -1,0 +1,15 @@
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\bin\AnyCPU\Debug\CoordinateMappingBasics-WPF.exe.config
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\bin\AnyCPU\Debug\CoordinateMappingBasics-WPF.exe
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\bin\AnyCPU\Debug\CoordinateMappingBasics-WPF.pdb
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\bin\AnyCPU\Debug\Microsoft.Kinect.dll
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\bin\AnyCPU\Debug\Microsoft.Kinect.xml
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\obj\Debug\CoordinateMappingBasics-WPF.csprojResolveAssemblyReference.cache
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\obj\Debug\MainWindow.baml
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\obj\Debug\MainWindow.g.cs
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\obj\Debug\App.g.cs
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\obj\Debug\CoordinateMappingBasics-WPF_MarkupCompile.cache
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\obj\Debug\CoordinateMappingBasics-WPF.g.resources
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\obj\Debug\Microsoft.Samples.Kinect.CoordinateMappingBasics.Properties.Resources.resources
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\obj\Debug\CoordinateMappingBasics-WPF.csproj.GenerateResource.Cache
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\obj\Debug\CoordinateMappingBasics-WPF.exe
+C:\Users\ammirato\Documents\KinectExamples\CoordinateMappingBasics-WPF\obj\Debug\CoordinateMappingBasics-WPF.pdb

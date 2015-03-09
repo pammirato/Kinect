@@ -1,14 +1,10 @@
 
-%possible outputs
-depths = {};
-depthTimeStamps = {};
-bodyMatrix = [];
-bodyTimeStamps = {};
-colors = {};
-colorTimeStamps = {};
 
+maxNumToRead = 40000;
 
-savePath = strcat('C:/Users/ammirato/Documents/KinectData/' , 'SittingTest/');
+objectName = 'Test';
+
+savePath = strcat('C:/Users/ammirato/Documents/KinectData/' , objectName, '/');
 
 
 colorPath = savePath; %'C:\Users\Phil\Documents\KinectToMatLab\';
@@ -17,9 +13,16 @@ bodyPath = savePath; %'C:\Users\Phil\Documents\BodyData\';
 
 readDepth = 1;
 readColor= 1;
-readBody =1;
+readBody =0;
 
 
+%possible outputs
+depths = {};
+depthTimeStamps = {};
+bodyMatrix = [];
+bodyTimeStamps = {};
+colors = {};
+colorTimeStamps = {};
 
 %b = dir([bodyPath '*.txt']);
 
@@ -29,8 +32,11 @@ if(readDepth)
     depthTimeStamps = zeros(length(d),1);
     depths = cell(length(d),1);
     for i=1:length(d)
-       temp = strsplit(d(i).name, {'Depth','.'});
-       depthTimeStamps(i) = str2num(temp{2});
+        if(i>maxNumToRead)
+            break;
+        end
+       %temp = strsplit(d(i).name, {objectName,'.'});
+       %depthTimeStamps(i) = str2num(temp{2});
        depths{i} = load('-mat', [depthPath d(i).name]);
     end%endfor 
 end%if readDepth
@@ -41,7 +47,10 @@ if(readColor)
     colorTimeStamps = zeros(length(c),1);
     colors = cell(1,length(c));
     for i=1:length(c)
-        temp = strsplit(c(i).name, {'Color','.'});
+        if(i>maxNumToRead)
+            break;
+        end
+        temp = strsplit(c(i).name, {objectName,'.'});
         colorTimeStamps(i) = str2num(temp{2});
         colors{i} = imread([colorPath c(i).name]);    
     end%endfor
@@ -95,9 +104,10 @@ end%end if read body
 
 %just so we have it
 jointIndexMap = containers.Map();
-
-for i=1:length(jointNames)-1%-1 because of TimeStamp
-    jointIndexMap(jointNames{i}) = i;
+if(readBody)
+    for i=1:length(jointNames)-1%-1 because of TimeStamp
+            jointIndexMap(jointNames{i}) = i;
+    end
 end
 
 %jointIndexMap('SpineBase') = 1;

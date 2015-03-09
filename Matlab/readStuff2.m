@@ -1,25 +1,29 @@
 
-%possible outputs
-depths = {};
-depthTimeStamps = {};
-bodyMatrix = [];
-bodyTimeStamps = {};
-colors = {};
-colorTimeStamps = {};
 
+maxNumToRead = 40000;
 
-savePath = strcat('C:/Users/amm/Documents/KinectData/' , 'Test/');
+objectName = 'Test3';
+
+savePath = strcat('C:/Users/ammirato/Documents/KinectData/' , objectName, '/');
 
 
 colorPath = savePath; %'C:\Users\Phil\Documents\KinectToMatLab\';
 depthPath = savePath; %'C:\Users\Phil\Documents\KinectToMatLab\';
 bodyPath = savePath; %'C:\Users\Phil\Documents\BodyData\';
 
-readDepth = 1;
+readDepth = 0;
 readColor= 1;
-readBody =1;
+readBody =0;
 
 
+%possible outputs
+depths = {};
+regDepths = {};
+depthTimeStamps = {};
+bodyMatrix = [];
+bodyTimeStamps = {};
+colors = {};
+colorTimeStamps = {};
 
 %b = dir([bodyPath '*.txt']);
 
@@ -27,11 +31,20 @@ if(readDepth)
     d = dir([depthPath '*.mat']);
 
     depthTimeStamps = zeros(length(d),1);
-    depths = cell(length(d),1);
+    %depths = cell(length(d),1);
+    
     for i=1:length(d)
-       temp = strsplit(d(i).name, {'Depth','.'});
-       depthTimeStamps(i) = str2num(temp{2});
-       depths{i} = load('-mat', [depthPath d(i).name]);
+        if(i>maxNumToRead)
+            break;
+        end
+       %temp = strsplit(d(i).name, {objectName,'.'});
+       %depthTimeStamps(i) = str2num(temp{2});
+       
+       if(strfind(d(i).name, 'NEW'))
+            regDepths{length(regDepths)+1} = load('-mat', [depthPath d(i).name]);
+       else
+            depths{length(depths)+1} = load('-mat', [depthPath d(i).name]);
+       end
     end%endfor 
 end%if readDepth
 
@@ -41,8 +54,11 @@ if(readColor)
     colorTimeStamps = zeros(length(c),1);
     colors = cell(1,length(c));
     for i=1:length(c)
-        temp = strsplit(c(i).name, {'Color','.'});
-        colorTimeStamps(i) = str2num(temp{2});
+        if(i>maxNumToRead)
+            break;
+        end
+        temp = strsplit(c(i).name, {objectName,'.'});
+        %colorTimeStamps(i) = str2num(temp{2});
         colors{i} = imread([colorPath c(i).name]);    
     end%endfor
 end%if read color
@@ -95,36 +111,11 @@ end%end if read body
 
 %just so we have it
 jointIndexMap = containers.Map();
-
-for i=1:length(jointNames)-1%-1 because of TimeStamp
-    jointIndexMap(jointNames{i}) = i;
+if(readBody)
+    for i=1:length(jointNames)-1%-1 because of TimeStamp
+            jointIndexMap(jointNames{i}) = i;
+    end
 end
-
-%jointIndexMap('SpineBase') = 1;
-%jointIndexMap('SpineMid') = 2;
-%jointIndexMap('Neck') = 3;
-%jointIndexMap('Head') = 4;
-%jointIndexMap('ShoulderLeft') = 5;
-%jointIndexMap('ElbowLeft') = 6;
-%jointIndexMap('WristLeft') = 7;
-%jointIndexMap('HandLeft') = 8;
-%jointIndexMap('ShoulderRight') = 9;
-%jointIndexMap('ElbowRight') = 10;
-%jointIndexMap('WristRight') = 11;
-%jointIndexMap('HandRight') = 12;
-%jointIndexMap('HipLeft') = 13;
-%jointIndexMap('KneeLeft') = 14;
-%jointIndexMap('AnkleLeft') = 15;
-%jointIndexMap('FootLeft') = 16;
-%jointIndexMap('HipRight') = 17;
-%jointIndexMap('KneeRight') = 18;
-%jointIndexMap('AnkleRight') = 19;
-%jointIndexMap('FootRight') = 20;
-%jointIndexMap('SpineShoulder') = 21;
-%jointIndexMap('HandTipLeft') = 22;
-%jointIndexMap('ThumbLeft') = 23;
-%jointIndexMap('HandTipRight') = 24;
-%jointIndexMap('ThumbRight') = 25;
 
 
 
