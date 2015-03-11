@@ -16,6 +16,23 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
     using System.Windows.Media.Imaging;
     using Microsoft.Kinect;
 
+
+
+
+    /// <summary>
+    /// The test class for our example.
+    /// </summary>
+    class ThreadArgument
+    {
+        public WriteableBitmap wbm { get; set; }
+        public string path { get; set; }
+    }
+
+
+
+
+
+
     /// <summary>
     /// Interaction logic for MainWindow
     /// </summary>
@@ -33,6 +50,16 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
         private const string SAVE_PATH_RGB = SAVE_PATH + "/" + RGB_EXTENSION+ "/";
         private const string SAVE_PATH_UNREG_DEPTH = SAVE_PATH + "/" + UNREG_DEPTH_EXTENSION + "/";
         private const string SAVE_PATH_REG_DEPTH = SAVE_PATH + "/" + REG_DEPTH_EXTENSION + "/";
+
+
+
+        private BackgroundWorker backgroundWorker;
+
+        //this dont work, out of memory at ~100(is it acutally or jsut thinks it is?)
+        private WriteableBitmap[] colorWbms;
+        private int rgbCounter = 0;
+
+
 
         // <summary>
         /// writes to output files
@@ -85,12 +112,26 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
         /// </summary>
         public MainWindow()
         {
+
+            this.backgroundWorker = new BackgroundWorker();
+            this.backgroundWorker.WorkerSupportsCancellation = true;
+            this.backgroundWorker.WorkerReportsProgress = true;
+            this.backgroundWorker.DoWork +=
+            new DoWorkEventHandler(this.backgroundWorker_DoWork);
+            this.backgroundWorker.ProgressChanged +=
+                new ProgressChangedEventHandler(this.backgroundWorker_ProgressChanged);
+            this.backgroundWorker.RunWorkerCompleted +=
+                new RunWorkerCompletedEventHandler(this.backgroundWorker_RunWorkerCompleted);
+
             this.kinectSensor = KinectSensor.GetDefault();
 
             System.IO.Directory.CreateDirectory(SAVE_PATH);
             System.IO.Directory.CreateDirectory(SAVE_PATH_RGB);
             System.IO.Directory.CreateDirectory(SAVE_PATH_UNREG_DEPTH);
             System.IO.Directory.CreateDirectory(SAVE_PATH_REG_DEPTH);
+
+
+            this.colorWbms = new WriteableBitmap[1000];
 
             this.multiFrameSourceReader = this.kinectSensor.OpenMultiSourceFrameReader(FrameSourceTypes.Depth | FrameSourceTypes.Color | FrameSourceTypes.BodyIndex);
 
@@ -126,6 +167,17 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
 
             this.InitializeComponent();
         }
+
+
+
+
+
+
+
+
+
+
+
 
         /// <summary>
         /// INotifyPropertyChangedPropertyChanged event to allow window controls to bind to changeable data
@@ -186,7 +238,49 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                 this.kinectSensor.Close();
                 this.kinectSensor = null;
             }
-        }
+
+
+            //  ******************* SAVE RGB  AT ENDDDDDDDDD ************************
+
+
+            for (int i = 0; i < rgbCounter; i++)
+            {
+                WriteableBitmap wbm = colorWbms[i];
+                // create a png bitmap encoder which knows how to save a .png file
+                BitmapEncoder encoder3 = new PngBitmapEncoder();
+
+                // create frame from the writable bitmap and add to encoder
+                encoder3.Frames.Add(BitmapFrame.Create(wbm));
+
+
+                string path3 = SAVE_PATH_RGB + OBJECT + Convert.ToInt64(i).ToString("D12") + "_" + RGB_EXTENSION + ".png";
+
+                // write the new file to disk
+                try
+                {
+                    // FileStream is IDisposable
+                    using (FileStream fs = new FileStream(path3, FileMode.Create))
+                    {
+
+                            encoder3.Save(fs);
+                    }
+                }
+                catch (IOException)
+                {
+                    //this.StatusText = string.Format(Properties.Resources.FailedScreenshotStatusTextFormat, path);
+                }
+            }
+
+
+
+
+
+
+
+            //  ******************* SAVE RGB  AT ENDDDDDDDDD************************
+
+
+        }//end closing
 
         /// <summary>
         /// Handles the user clicking on the screenshot button
@@ -195,7 +289,7 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
         /// <param name="e">event arguments</param>
         private void ScreenshotButton_Click(object sender, RoutedEventArgs e)
         {
-            // Create a render target to which we'll render our composite image
+         /*   // Create a render target to which we'll render our composite image
             RenderTargetBitmap renderBitmap = new RenderTargetBitmap((int)CompositeImage.ActualWidth, (int)CompositeImage.ActualHeight, 96.0, 96.0, PixelFormats.Pbgra32);
 
             DrawingVisual dv = new DrawingVisual();
@@ -230,6 +324,7 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
             {
                 this.StatusText = string.Format(Properties.Resources.FailedScreenshotStatusTextFormat, path);
             }
+          * */
         }
 
 
@@ -295,6 +390,13 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                     return;
                 }
 
+
+                // ********************************** UNREG DEPTH  *****************************
+                FrameDescription depthFrameDescription = depthFrame.FrameDescription;
+
+                depthWidth = depthFrameDescription.Width;
+                depthHeight = depthFrameDescription.Height;
+                /*
                 // Process Depth
                 FrameDescription depthFrameDescription = depthFrame.FrameDescription;
 
@@ -319,16 +421,16 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
 
 
 
-                WriteableBitmap wbm = new WriteableBitmap(depthWidth, depthHeight, 96.0, 96.0, PixelFormats.Gray16, null);
+                WriteableBitmap unregDeptWbm = new WriteableBitmap(depthWidth, depthHeight, 96.0, 96.0, PixelFormats.Gray16, null);
                 depthFrame.CopyFrameDataToIntPtr(
-                                    wbm.BackBuffer,
+                                    unregDeptWbm.BackBuffer,
                                     (uint)(depthWidth * depthHeight * 2));
 
                 // create a png bitmap encoder which knows how to save a .png file
                 BitmapEncoder encoder = new PngBitmapEncoder();
 
                 // create frame from the writable bitmap and add to encoder
-                encoder.Frames.Add(BitmapFrame.Create(wbm));
+                encoder.Frames.Add(BitmapFrame.Create(unregDeptWbm));
 
 
                 string path = SAVE_PATH_UNREG_DEPTH + OBJECT + Convert.ToInt64(depthFrame.RelativeTime.TotalMilliseconds).ToString("D12") + "_" + UNREG_DEPTH_EXTENSION + ".png";
@@ -339,7 +441,7 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                     // FileStream is IDisposable
                     using (FileStream fs = new FileStream(path, FileMode.Create))
                     {
-                        encoder.Save(fs);
+                        //encoder.Save(fs);
                     }
                 }
                 catch (IOException)
@@ -347,38 +449,40 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                     //this.StatusText = string.Format(Properties.Resources.FailedScreenshotStatusTextFormat, path);
                 }
                          
-                // We're done with the DepthFrame 
-                //depthFrame.Dispose();
-                //depthFrame = null;
+
+                */
+                // ********************************** END UNREG DEPTH  *****************************
 
 
-                
+
+
+
+                // ********************************** RGB    *****************************
 
                 // Process Color
 
                 // Lock the bitmap for writing
                 this.bitmap.Lock();
                 isBitmapLocked = true;
-
-                //colorFrame.CopyConvertedFrameDataToIntPtr(this.bitmap.BackBuffer, this.bitmapBackBufferSize, ColorImageFormat.Bgra);
-
-
-
+                Console.Write(rgbCounter);
+                Console.Write("\n");
 
                 //save the colorframe
-                WriteableBitmap wbm3 = new WriteableBitmap(colorFrame.FrameDescription.Width, colorFrame.FrameDescription.Height, 96.0, 96.0, PixelFormats.Bgr32, null);
+                WriteableBitmap rgbWbm = new WriteableBitmap(colorFrame.FrameDescription.Width, colorFrame.FrameDescription.Height, 96.0, 96.0, PixelFormats.Bgr32, null);
                 colorFrame.CopyConvertedFrameDataToIntPtr(
-                                        wbm3.BackBuffer,
+                                        rgbWbm.BackBuffer,
                                         (uint)(colorFrame.FrameDescription.Width * colorFrame.FrameDescription.Height * 4),
                                         ColorImageFormat.Bgra);
 
+                //colorWbms[rgbCounter] = rgbWbm;
+                rgbCounter += 1;
                // wbm.AddDirtyRect(new Int32Rect(0, 0, wbm.PixelWidth, wbm.PixelHeight));
 
                 // create a png bitmap encoder which knows how to save a .png file
                 BitmapEncoder encoder3 = new PngBitmapEncoder();
 
                 // create frame from the writable bitmap and add to encoder
-                encoder3.Frames.Add(BitmapFrame.Create(wbm3));
+                encoder3.Frames.Add(BitmapFrame.Create(rgbWbm));
 
 
                 string path3 = SAVE_PATH_RGB + OBJECT + Convert.ToInt64(colorFrame.RelativeTime.TotalMilliseconds).ToString("D12") + "_"+ RGB_EXTENSION + ".png";
@@ -386,11 +490,20 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                 // write the new file to disk
                 try
                 {
-                    // FileStream is IDisposable
-                    using (FileStream fs = new FileStream(path3, FileMode.Create))
+                    if (this.backgroundWorker.IsBusy)
                     {
-                        encoder3.Save(fs);
+                        // FileStream is IDisposable
+                        using (FileStream fs = new FileStream(path3, FileMode.Create))
+                        {
+                            encoder3.Save(fs);
+                        }
                     }
+                    else
+                    {
+                        ThreadArgument arg = new ThreadArgument { wbm = rgbWbm, path =path3 };
+                        this.backgroundWorker.RunWorkerAsync(arg);
+                    }
+                    
                 }
                 catch (IOException)
                 {
@@ -398,12 +511,21 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                 }
 
 
+                // ********************************** END RGB  *****************************
 
 
-                // We're done with the ColorFrame 
-                //colorFrame.Dispose();
-               // colorFrame = null;
 
+
+
+
+
+
+
+
+
+                // ********************************** REGISTRATION  *****************************
+                
+                /*
                 // We'll access the body index data directly to avoid a copy
                 using (KinectBuffer bodyIndexData = bodyIndexFrame.LockImageBuffer())
                 {
@@ -479,7 +601,7 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                                 // FileStream is IDisposable
                                 using (FileStream fs = new FileStream(path2, FileMode.Create))
                                 {
-                                    encoder2.Save(fs);
+                                   // encoder2.Save(fs);
                                 }
                             }
                             catch (IOException)
@@ -492,7 +614,9 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
 
                         this.bitmap.AddDirtyRect(new Int32Rect(0, 0, this.bitmap.PixelWidth, this.bitmap.PixelHeight));
                     }
-                }
+                } 
+                 */
+                 // ************************************* END REGISTRATION ******************************* 
             }
             finally
             {
@@ -527,6 +651,66 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
         {
             this.StatusText = this.kinectSensor.IsAvailable ? Properties.Resources.RunningStatusText
                                                             : Properties.Resources.SensorNotAvailableStatusText;
+        }
+
+
+
+
+
+
+
+        private void backgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            BackgroundWorker worker = sender as BackgroundWorker;
+
+            //for (int i = 1; (i <= 10); i++)
+           // {
+                if ((worker.CancellationPending == true))
+                {
+                    e.Cancel = true;
+                    //break;
+                }
+                else
+                {
+                    // Perform a time consuming operation and report progress.
+                    ThreadArgument arg = (ThreadArgument)e.Argument;
+
+
+                    // create a png bitmap encoder which knows how to save a .png file
+                    BitmapEncoder encoder = new PngBitmapEncoder();
+
+                    // create frame from the writable bitmap and add to encoder
+                    encoder.Frames.Add(BitmapFrame.Create((WriteableBitmap)(arg.wbm)));
+                    // FileStream is IDisposable
+                    using (FileStream fs = new FileStream(arg.path, FileMode.Create))
+                    {
+                               encoder.Save(fs);
+                    }
+                }
+           // }
+        }
+
+        private void backgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            Console.Write(e.ProgressPercentage.ToString() + "%");
+        }
+
+        private void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            if ((e.Cancelled == true))
+            {
+                Console.Write("Canceled!");
+            }
+
+            else if (!(e.Error == null))
+            {
+                Console.Write("Error: " + e.Error.Message);
+            }
+
+            else
+            {
+                Console.Write("Done!");
+            }
         }
     }
 }
