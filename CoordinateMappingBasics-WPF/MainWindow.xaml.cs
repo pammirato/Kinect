@@ -14,6 +14,7 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
     using System.Windows;
     using System.Windows.Media;
     using System.Windows.Media.Imaging;
+    using System.Threading;
     using Microsoft.Kinect;
 
 
@@ -43,8 +44,8 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
         private const string SAVE_PATH = "C:/Users/ammirato/Documents/KinectData/" + OBJECT + "/";
 
         private const string RGB_EXTENSION = "rgb";
-        private const string UNREG_DEPTH_EXTENSION = "unreg_depth";
-        private const string REG_DEPTH_EXTENSION = "reg_depth";
+        private const string UNREG_DEPTH_EXTENSION = "unreg_rawdepth";
+        private const string REG_DEPTH_EXTENSION = "rawdepth";
 
 
         private const string SAVE_PATH_RGB = SAVE_PATH + "/" + RGB_EXTENSION+ "/";
@@ -101,6 +102,9 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
         /// Intermediate storage for the color to depth mapping
         /// </summary>
         private DepthSpacePoint[] colorMappedToDepthPoints = null;
+
+        private bool gotDepthRegistration = false;
+
 
         /// <summary>
         /// Current status text to display
@@ -391,14 +395,14 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                 }
 
 
-                // ********************************** UNREG DEPTH  *****************************
+               
                 FrameDescription depthFrameDescription = depthFrame.FrameDescription;
 
                 depthWidth = depthFrameDescription.Width;
                 depthHeight = depthFrameDescription.Height;
-                /*
+                
                 // Process Depth
-                FrameDescription depthFrameDescription = depthFrame.FrameDescription;
+                //FrameDescription depthFrameDescription = depthFrame.FrameDescription;
 
                 depthWidth = depthFrameDescription.Width;
                 depthHeight = depthFrameDescription.Height;
@@ -418,8 +422,27 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                    // this.matfw = new MATWriter("depthmat", filePath, data, depthFrameDescription.Height, depthFrameDescription.Width);
 
                 }
+                if (!this.gotDepthRegistration)
+                {
+
+                    //string toWrite = new string();
+                    var csv = new System.Text.StringBuilder();
+                    foreach (DepthSpacePoint dp in colorMappedToDepthPoints)
+                    {
+                        var x = dp.X.ToString();
+                        var y = dp.Y.ToString();
+                        var newLine = string.Format("{0},{1}{2}", x, y, Environment.NewLine);
+                        csv.Append(newLine); 
+                    }
+
+                    File.WriteAllText((SAVE_PATH_REG_DEPTH +"/mapping.csv"), csv.ToString());
+                    this.gotDepthRegistration = true;
+                }
 
 
+                
+
+                // ********************************** UNREG DEPTH  *****************************
 
                 WriteableBitmap unregDeptWbm = new WriteableBitmap(depthWidth, depthHeight, 96.0, 96.0, PixelFormats.Gray16, null);
                 depthFrame.CopyFrameDataToIntPtr(
@@ -450,7 +473,7 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                 }
                          
 
-                */
+                
                 // ********************************** END UNREG DEPTH  *****************************
 
 
@@ -475,7 +498,7 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                                         ColorImageFormat.Bgra);
 
                 //colorWbms[rgbCounter] = rgbWbm;
-                rgbCounter += 1;
+                //rgbCounter += 1;
                // wbm.AddDirtyRect(new Int32Rect(0, 0, wbm.PixelWidth, wbm.PixelHeight));
 
                 // create a png bitmap encoder which knows how to save a .png file
@@ -490,17 +513,24 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                 // write the new file to disk
                 try
                 {
-                    if (this.backgroundWorker.IsBusy)
+                    if (true)
+                    //if (this.backgroundWorker.IsBusy)
                     {
                         // FileStream is IDisposable
                         using (FileStream fs = new FileStream(path3, FileMode.Create))
                         {
-                            encoder3.Save(fs);
+                            this.Dispatcher.Invoke((Action)(() =>
+    {
+                                    encoder3.Save(fs);
+    }));
+                            
                         }
                     }
                     else
                     {
-                        ThreadArgument arg = new ThreadArgument { wbm = rgbWbm, path =path3 };
+                        //Mutex mu = new Mutex(false);
+                        
+                        ThreadArgument arg = new ThreadArgument { wbm = rgbWbm.Clone(), path =path3 };
                         this.backgroundWorker.RunWorkerAsync(arg);
                     }
                     
@@ -525,7 +555,7 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
 
                 // ********************************** REGISTRATION  *****************************
                 
-                /*
+                
                 // We'll access the body index data directly to avoid a copy
                 using (KinectBuffer bodyIndexData = bodyIndexFrame.LockImageBuffer())
                 {
@@ -615,7 +645,7 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                         this.bitmap.AddDirtyRect(new Int32Rect(0, 0, this.bitmap.PixelWidth, this.bitmap.PixelHeight));
                     }
                 } 
-                 */
+                 
                  // ************************************* END REGISTRATION ******************************* 
             }
             finally
@@ -672,6 +702,12 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                 }
                 else
                 {
+
+                    this.Dispatcher.Invoke((Action)(() =>
+    {
+        // your code here.
+
+
                     // Perform a time consuming operation and report progress.
                     ThreadArgument arg = (ThreadArgument)e.Argument;
 
@@ -679,16 +715,35 @@ namespace Microsoft.Samples.Kinect.CoordinateMappingBasics
                     // create a png bitmap encoder which knows how to save a .png file
                     BitmapEncoder encoder = new PngBitmapEncoder();
 
+                    WriteableBitmap wbm = arg.wbm;
+                    //wbm.TryLock(new System.Windows.Duration(new TimeSpan(0,0,1)));
+
                     // create frame from the writable bitmap and add to encoder
-                    encoder.Frames.Add(BitmapFrame.Create((WriteableBitmap)(arg.wbm)));
+                    encoder.Frames.Add(BitmapFrame.Create(wbm));
                     // FileStream is IDisposable
                     using (FileStream fs = new FileStream(arg.path, FileMode.Create))
                     {
                                encoder.Save(fs);
                     }
+
+
+  }));
+
                 }
            // }
         }
+
+
+
+
+
+
+
+
+
+
+
+
 
         private void backgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
